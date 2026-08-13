@@ -63,7 +63,7 @@ function rebuildFindings(){
   if(sheet.id==='sheet-1'||sheet.id==='sheet-2'||sheet.id==='sheet-11')return;const site=findingsSiteName(sheet);
   const checklistBody=sheet.querySelector('.toolbar + .table-wrap tbody');
   if(checklistBody)checklistBody.querySelectorAll('tr:not(.note-row)').forEach(src=>{const sel=src.querySelector('.result-select');const result=sel?.value||src.dataset.result||'';if(result!=='부적합'&&result!=='관찰')return;const vals=[...src.cells].map(c=>c.innerText.trim());const tr=document.createElement('tr');findingCell(tr,'['+site+'] '+(vals[0]||''),'finding-site');for(let i=1;i<12;i++)findingCell(tr,i===7?result:vals[i]);target.appendChild(tr);total++});
-  sheet.querySelectorAll('.pollutant-row').forEach(src=>{const result=src.querySelector('.auto-result')?.textContent.trim();if(result!=='부적합')return;const c=[...src.cells].map(x=>x.innerText.trim());const tr=document.createElement('tr');const finalLimit=c[8]||c[5];findingCell(tr,'['+site+'] '+c[0],'finding-site');findingCell(tr,c[2]);findingCell(tr,c[1]+'의 '+c[2]+' 실측값이 기준을 초과했습니까?');findingCell(tr,c[4]);findingCell(tr,c[6]);findingCell(tr,'최종한도 '+finalLimit+' '+c[3]+' / 실측 '+c[9]+' '+c[3]);findingCell(tr,'High');findingCell(tr,'부적합');findingCell(tr,'실측값: '+c[9]);findingCell(tr,'');findingCell(tr,'');findingCell(tr,'');target.appendChild(tr);total++});
+  sheet.querySelectorAll('.pollutant-row').forEach(src=>{if(!src.querySelector('.emission-applicable')?.checked)return;const result=src.querySelector('.auto-result')?.textContent.trim();if(result!=='부적합')return;const c=[...src.cells].map(x=>x.innerText.trim());const tr=document.createElement('tr');const finalLimit=c[9]||c[6];findingCell(tr,'['+site+'] '+c[1],'finding-site');findingCell(tr,c[3]);findingCell(tr,c[2]+'의 '+c[3]+' 실측값이 기준을 초과했습니까?');findingCell(tr,c[5]);findingCell(tr,c[7]);findingCell(tr,'최종한도 '+finalLimit+' '+c[4]+' / 실측 '+c[10]+' '+c[4]);findingCell(tr,'High');findingCell(tr,'부적합');findingCell(tr,'실측값: '+c[10]);findingCell(tr,'');findingCell(tr,'');findingCell(tr,'');target.appendChild(tr);total++});
  });
  const commonStatic=new Map(commonRows().map(row=>[commonRowKey(row),[...row.cells].map(c=>c.innerText.trim())]));
 Object.entries(commonStore).forEach(([site,records])=>Object.entries(records).forEach(([key,rec])=>{if(rec.result!=='부적합'&&rec.result!=='관찰')return;const vals=commonStatic.get(key)||['공통점검','',key,'','','','','High','','','','',''];const tr=document.createElement('tr');findingCell(tr,'['+site+'] '+(vals[0]||'공통점검')+(vals[1]?' / '+vals[1]:''),'finding-site');findingCell(tr,vals[2]);findingCell(tr,vals[3]);findingCell(tr,vals[4]);findingCell(tr,vals[5]);findingCell(tr,vals[6]);findingCell(tr,vals[7]);findingCell(tr,rec.result);findingCell(tr,rec.answer);findingCell(tr,rec.action);findingCell(tr,rec.owner);findingCell(tr,rec.due);target.appendChild(tr);total++}));
@@ -119,6 +119,26 @@ document.addEventListener('change',e=>{if(e.target.matches('.result-select')&&!e
 })();
 </script>
 <style>
+.emission-check-head,.emission-check-cell{width:62px!important;min-width:62px!important;text-align:center;vertical-align:middle!important}.emission-applicable{width:18px;height:18px;accent-color:#7030a0;cursor:pointer}.pollutant-row:not(.emission-selected) td{color:#89848e}.pollutant-row:not(.emission-selected) .emission-check-cell{background:#f5f4f8}.pollutant-row.emission-selected .emission-check-cell{background:#eee3f5}.pollutant-row .judgement-excluded{background:#f1f1f1!important;color:#777!important}
+@media print{.emission-applicable{appearance:auto}}
+</style>
+<script>
+/* 사업장별 오염물질 배출여부 선택: 선택 항목만 준수판정 및 개선 필요사항 집계 */
+(function(){
+ const storageKey='china-env-emission-applicable-v1';let store={};try{store=JSON.parse(localStorage.getItem(storageKey)||'{}')}catch(e){}
+ const originalAssess=window.assessPollutantRow;
+ function rowKey(sheet,row,index){return sheet.id+'|'+(row.cells[0]?.textContent||'')+'|'+(row.cells[1]?.textContent||'')+'|'+(row.cells[2]?.textContent||'')+'|'+index}
+ document.querySelectorAll('#sheet-3,#sheet-4,#sheet-5,#sheet-6,#sheet-7,#sheet-8,#sheet-9,#sheet-10').forEach(sheet=>{
+  const table=sheet.querySelector('.site-emission-table');if(!table||table.querySelector('.emission-check-head'))return;
+  const th=document.createElement('th');th.className='emission-check-head';th.innerHTML='배출<br>여부';table.querySelector('thead tr')?.insertBefore(th,table.querySelector('thead tr')?.firstElementChild||null);
+  table.querySelectorAll('tbody .pollutant-row').forEach((row,i)=>{const key=rowKey(sheet,row,i),td=document.createElement('td'),check=document.createElement('input');check.type='checkbox';check.className='emission-applicable';check.title='해당 사업장에서 배출되는 오염물질이면 선택';check.dataset.storageKey=key;check.checked=store[key]===true;td.className='emission-check-cell';td.appendChild(check);row.insertBefore(td,row.firstElementChild);row.classList.toggle('emission-selected',check.checked)});
+ });
+ window.assessPollutantRow=function(row){const check=row.querySelector('.emission-applicable');if(check&&!check.checked){if(typeof updateFinalLimit==='function')updateFinalLimit(row);const out=row.querySelector('.auto-result'),internal=row.querySelector('.internal-result');if(out){out.textContent='판정제외';out.className='auto-result judgement-excluded'}if(internal){internal.textContent='판정제외';internal.className='internal-result judgement-excluded'}return}if(typeof originalAssess==='function')originalAssess(row)};
+ document.querySelectorAll('.site-emission-table .pollutant-row').forEach(row=>window.assessPollutantRow(row));
+ document.addEventListener('change',e=>{if(!e.target.matches('.emission-applicable'))return;const row=e.target.closest('.pollutant-row');store[e.target.dataset.storageKey]=e.target.checked;localStorage.setItem(storageKey,JSON.stringify(store));row.classList.toggle('emission-selected',e.target.checked);window.assessPollutantRow(row);if(e.target.checked){const ev=new Event('input',{bubbles:true});row.querySelector('.actual-value')?.dispatchEvent(ev)}if(typeof rebuildFindings==='function')rebuildFindings()});
+})();
+</script>
+<style>
 .discharge-mode-wrap{display:flex;align-items:center;gap:7px;padding:5px 9px;border:1px solid #ffffff00;border-radius:6px;background:#f2ecf6}.discharge-mode-wrap label{font-weight:800;color:#522276;white-space:nowrap}.discharge-mode-select{min-width:105px;border:1px solid #bca7ca;border-radius:5px;background:#fff;padding:6px 8px;color:#33263b;font-weight:700}
 </style>
 <script>
@@ -133,17 +153,17 @@ document.addEventListener('change',e=>{if(e.target.matches('.result-select')&&!e
  };
  function applyMode(sheet,mode){
   sheet.querySelectorAll('.site-emission-table .pollutant-row[data-media="수질"]').forEach(row=>{
-   const pollutant=row.cells[2]?.textContent.trim();
-   if(!row.dataset.indirectOriginalCaptured){row.dataset.indirectOriginalCaptured='1';row.dataset.indirectOriginalMax=row.dataset.max||'';row.dataset.indirectOriginalLimit=row.cells[5]?.textContent.trim()||'';row.dataset.indirectOriginalBasis=row.cells[4]?.textContent.trim()||'';row.dataset.indirectOriginalCondition=row.cells[6]?.textContent.trim()||''}
+   const pollutant=row.cells[3]?.textContent.trim();
+   if(!row.dataset.indirectOriginalCaptured){row.dataset.indirectOriginalCaptured='1';row.dataset.indirectOriginalMax=row.dataset.max||'';row.dataset.indirectOriginalLimit=row.cells[6]?.textContent.trim()||'';row.dataset.indirectOriginalBasis=row.cells[5]?.textContent.trim()||'';row.dataset.indirectOriginalCondition=row.cells[7]?.textContent.trim()||''}
    if(pollutant==='pH'){
-    row.cells[4].textContent='GB30484-2013 표2 신설기업 '+mode;
-    row.cells[6].textContent='신설 리튬이온전지·'+mode;
+    row.cells[5].textContent='GB30484-2013 표2 신설기업 '+mode;
+    row.cells[7].textContent='신설 리튬이온전지·'+mode;
    }
    if(limits[pollutant]){
     const value=limits[pollutant][mode];
     row.dataset.max=String(value);
-    row.cells[5].textContent=String(value);
-    row.cells[6].textContent='신설 '+mode+' 기준';
+    row.cells[6].textContent=String(value);
+    row.cells[7].textContent='신설 '+mode+' 기준';
    }
    if(typeof updateCompliance==='function')updateCompliance(row);
   });
@@ -196,7 +216,8 @@ document.addEventListener('change',e=>{if(e.target.matches('.result-select')&&!e
  }
  function recalcIndirectRow(row){
   const sheet=row.closest('.sheet');
-  if(!sheet||!isIndirect(sheet)||row.dataset.media!=='수질'||row.cells[3]?.textContent.trim()!=='mg/L')return;
+  if(row.querySelector('.emission-applicable')&&!row.querySelector('.emission-applicable').checked){const resultCell=row.querySelector('.internal-result');if(resultCell){resultCell.textContent='판정제외';resultCell.className='internal-result judgement-excluded'}return}
+  if(!sheet||!isIndirect(sheet)||row.dataset.media!=='수질'||row.cells[4]?.textContent.trim()!=='mg/L')return;
   const legalMax=Number.isFinite(parseFloat(row.dataset.max))?parseFloat(row.dataset.max):null;
   const entered=typeof parseLimitText==='function'?parseLimitText(row.querySelector('.permit-limit')?.innerText||''):null;
   const influent=entered&&Number.isFinite(entered.max)?entered.max:legalMax;
@@ -216,7 +237,7 @@ document.addEventListener('change',e=>{if(e.target.matches('.result-select')&&!e
  function recalcSheet(sheet){sheet.querySelectorAll('.site-emission-table .pollutant-row').forEach(recalcIndirectRow)}
  document.querySelectorAll('#sheet-3,#sheet-4,#sheet-5,#sheet-6,#sheet-7,#sheet-8,#sheet-9,#sheet-10').forEach(sheet=>{
   const table=sheet.querySelector('.site-emission-table');if(!table)return;
-  const header=table.querySelector('thead th:nth-child(8)');
+  const header=table.querySelector('thead th:nth-child(9)');
   if(header)header.innerHTML='처리장 유입기준 / 허가·협약 한도<br>(간접배출은 입력값의 50% 적용)';
   const desc=sheet.querySelector('.site-emission-heading p');
   if(desc)desc.textContent='법 준수판정은 최종 적용한도를 기준으로 합니다. 간접배출 폐수의 사내 관리기준은 처리장 유입기준의 50%로 계산합니다. 유입기준을 입력하지 않으면 표에 설정된 간접배출 기준의 50%를 임시 적용합니다. 직접배출과 대기 항목은 기존 산정방식을 적용하며, pH 등 범위형 항목은 별도 확인합니다.';
@@ -255,19 +276,19 @@ document.addEventListener('change',e=>{if(e.target.matches('.result-select')&&!e
  function applyAllMode(sheet,mode){
   const profile=profiles[profileBySheet[sheet.id]],values=mode==='직접배출'?profile.direct:profile.indirect;
   sheet.querySelectorAll('.site-emission-table .pollutant-row[data-media="수질"]').forEach(row=>{
-   const pollutant=row.cells[2]?.textContent.trim();
+   const pollutant=row.cells[3]?.textContent.trim();
    if(pollutant==='pH'){
-    row.cells[4].textContent=profile.basis+' '+mode;
-    row.cells[6].textContent=mode+' 기준';
+    row.cells[5].textContent=profile.basis+' '+mode;
+    row.cells[7].textContent=mode+' 기준';
    }
    if(Object.prototype.hasOwnProperty.call(values,pollutant)){
-    const value=values[pollutant];row.dataset.max=String(value);row.cells[5].textContent=String(value);
-    row.cells[4].textContent=profile.basis+' '+mode;row.cells[6].textContent=mode+' 기준';
-   }else if(mode==='직접배출'&&pollutant!=='pH'&&row.cells[3]?.textContent.trim()==='mg/L'){
-    delete row.dataset.max;row.cells[5].textContent='확인필요';row.cells[4].textContent=profile.basis+' 직접배출';row.cells[6].textContent='해당 업종열·허가조건 확인';
+    const value=values[pollutant];row.dataset.max=String(value);row.cells[6].textContent=String(value);
+    row.cells[5].textContent=profile.basis+' '+mode;row.cells[7].textContent=mode+' 기준';
+   }else if(mode==='직접배출'&&pollutant!=='pH'&&row.cells[4]?.textContent.trim()==='mg/L'){
+    delete row.dataset.max;row.cells[6].textContent='확인필요';row.cells[5].textContent=profile.basis+' 직접배출';row.cells[7].textContent='해당 업종열·허가조건 확인';
    }else if(mode==='간접배출'&&pollutant!=='pH'){
     if(row.dataset.indirectOriginalMax)row.dataset.max=row.dataset.indirectOriginalMax;else delete row.dataset.max;
-    row.cells[5].textContent=row.dataset.indirectOriginalLimit;row.cells[4].textContent=row.dataset.indirectOriginalBasis;row.cells[6].textContent=row.dataset.indirectOriginalCondition;
+    row.cells[6].textContent=row.dataset.indirectOriginalLimit;row.cells[5].textContent=row.dataset.indirectOriginalBasis;row.cells[7].textContent=row.dataset.indirectOriginalCondition;
    }
    if(typeof updateCompliance==='function')updateCompliance(row);
   });
@@ -298,7 +319,7 @@ document.addEventListener('change',e=>{if(e.target.matches('.result-select')&&!e
 /* 사업장 배출기준 기타사항 + 공통점검 현장사진 */
 (function(){
  const memoKey='china-env-emission-other-notes-v1';let memoStore={};try{memoStore=JSON.parse(localStorage.getItem(memoKey)||'{}')}catch(e){}
- function memoRowKey(sheet,row,index){return sheet.id+'|'+(row.cells[0]?.textContent||'')+'|'+(row.cells[1]?.textContent||'')+'|'+(row.cells[2]?.textContent||'')+'|'+index}
+ function memoRowKey(sheet,row,index){return sheet.id+'|'+(row.cells[1]?.textContent||'')+'|'+(row.cells[2]?.textContent||'')+'|'+(row.cells[3]?.textContent||'')+'|'+index}
  document.querySelectorAll('#sheet-3,#sheet-4,#sheet-5,#sheet-6,#sheet-7,#sheet-8,#sheet-9,#sheet-10').forEach(sheet=>{
   const table=sheet.querySelector('.site-emission-table');if(!table||table.querySelector('th.other-note-head'))return;
   const th=document.createElement('th');th.className='other-note-head';th.textContent='기타사항';table.querySelector('thead tr').appendChild(th);
@@ -471,6 +492,24 @@ document.addEventListener('change',e=>{if(e.target.matches('.result-select')&&!e
 @media screen and (min-width:1600px){
  .table-wrap table{min-width:100%}
  .pollutant-matrix .table-wrap table,.site-emission-table{min-width:100%!important}
+}
+@media screen and (min-width:901px){
+ .site-emission-table th:nth-child(1),.site-emission-table td:nth-child(1){width:52px!important;min-width:52px!important}
+ .site-emission-table th:nth-child(2),.site-emission-table td:nth-child(2){width:55px!important}
+ .site-emission-table th:nth-child(3),.site-emission-table td:nth-child(3){width:105px!important}
+ .site-emission-table th:nth-child(4),.site-emission-table td:nth-child(4){width:100px!important}
+ .site-emission-table th:nth-child(5),.site-emission-table td:nth-child(5){width:58px!important}
+ .site-emission-table th:nth-child(6),.site-emission-table td:nth-child(6){width:145px!important}
+ .site-emission-table th:nth-child(7),.site-emission-table td:nth-child(7){width:68px!important}
+ .site-emission-table th:nth-child(8),.site-emission-table td:nth-child(8){width:122px!important}
+ .site-emission-table th:nth-child(9),.site-emission-table td:nth-child(9){width:82px!important}
+ .site-emission-table th:nth-child(10),.site-emission-table td:nth-child(10){width:82px!important}
+ .site-emission-table th:nth-child(11),.site-emission-table td:nth-child(11){width:75px!important}
+ .site-emission-table th:nth-child(12),.site-emission-table td:nth-child(12){width:72px!important}
+ .site-emission-table th:nth-child(13),.site-emission-table td:nth-child(13){width:96px!important}
+ .site-emission-table th:nth-child(14),.site-emission-table td:nth-child(14){width:72px!important}
+ .site-emission-table th:nth-child(15),.site-emission-table td:nth-child(15){width:115px!important}
+ .site-emission-table th:nth-child(16),.site-emission-table td:nth-child(16){width:120px!important}
 }
 </style></body>
 </html>
