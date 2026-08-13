@@ -165,7 +165,7 @@ document.addEventListener('change',e=>{if(e.target.matches('.result-select')&&!e
     row.cells[6].textContent=String(value);
     row.cells[7].textContent='신설 '+mode+' 기준';
    }
-   if(typeof updateCompliance==='function')updateCompliance(row);
+   if(typeof assessPollutantRow==='function')assessPollutantRow(row);
   });
   localStorage.setItem('china-env-discharge-mode-'+sheet.id,mode);
   if(typeof rebuildFindings==='function')rebuildFindings();
@@ -290,7 +290,7 @@ document.addEventListener('change',e=>{if(e.target.matches('.result-select')&&!e
     if(row.dataset.indirectOriginalMax)row.dataset.max=row.dataset.indirectOriginalMax;else delete row.dataset.max;
     row.cells[6].textContent=row.dataset.indirectOriginalLimit;row.cells[5].textContent=row.dataset.indirectOriginalBasis;row.cells[7].textContent=row.dataset.indirectOriginalCondition;
    }
-   if(typeof updateCompliance==='function')updateCompliance(row);
+   if(typeof assessPollutantRow==='function')assessPollutantRow(row);
   });
   localStorage.setItem('china-env-discharge-mode-'+sheet.id,mode);
   setTimeout(()=>{
