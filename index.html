@@ -425,5 +425,52 @@ document.addEventListener('change',e=>{if(e.target.matches('.result-select')&&!e
  document.querySelector('.tab[data-sheet="sheet-11"]')?.addEventListener('click',()=>setTimeout(applyAll,20));
  applyAll();
 })();
-</script></body>
+</script>
+<style>
+/* PC 해상도 최적화: 표 전체 폭 축소 및 열별 밀도 조정 */
+@media screen and (min-width:901px){
+ body{font-size:13px}main{padding:12px}
+ .table-wrap{width:100%;max-width:100%;scrollbar-gutter:stable;max-height:calc(100vh - 145px)}
+ .table-wrap table{table-layout:fixed;width:100%;min-width:1380px;font-size:11.5px}
+ .table-wrap th,.table-wrap td{min-width:0!important;max-width:none!important;padding:6px 7px;line-height:1.32;overflow-wrap:anywhere;word-break:keep-all}
+ .table-wrap th{font-size:11.5px}
+ .table-wrap th:nth-child(1),.table-wrap td:nth-child(1){width:88px;min-width:88px!important}
+ .table-wrap th:nth-child(2),.table-wrap td:nth-child(2){width:116px}
+ .table-wrap th:nth-child(3),.table-wrap td:nth-child(3){width:184px}
+ .table-wrap th:nth-child(4),.table-wrap td:nth-child(4){width:132px}
+ .table-wrap th:nth-child(5),.table-wrap td:nth-child(5){width:142px}
+ .table-wrap th:nth-child(6),.table-wrap td:nth-child(6){width:164px}
+ .table-wrap th:nth-child(7),.table-wrap td:nth-child(7){width:72px}
+ .table-wrap th:nth-child(8),.table-wrap td:nth-child(8){width:86px}
+ .table-wrap th:nth-child(9),.table-wrap td:nth-child(9){width:132px}
+ .table-wrap th:nth-child(10),.table-wrap td:nth-child(10){width:140px}
+ .table-wrap th:nth-child(11),.table-wrap td:nth-child(11){width:72px}
+ .table-wrap th:nth-child(12),.table-wrap td:nth-child(12){width:92px}
+ .table-wrap th:nth-child(13),.table-wrap td:nth-child(13){width:128px}
+ .result-select{padding:5px 3px;font-size:11.5px}
+
+ /* 사업장별 배출기준표는 숫자·단위 열을 좁히고 설명 열에 폭을 배분 */
+ .pollutant-matrix .table-wrap table,.site-emission-table{min-width:1280px!important;font-size:11px!important}
+ .pollutant-matrix .table-wrap th,.pollutant-matrix .table-wrap td,.site-emission-table th,.site-emission-table td{padding:5px 6px!important}
+ .pollutant-matrix .table-wrap th:nth-child(1),.pollutant-matrix .table-wrap td:nth-child(1),.site-emission-table th:nth-child(1),.site-emission-table td:nth-child(1){width:55px!important;min-width:55px!important}
+ .pollutant-matrix .table-wrap th:nth-child(2),.pollutant-matrix .table-wrap td:nth-child(2),.site-emission-table th:nth-child(2),.site-emission-table td:nth-child(2){width:105px!important}
+ .pollutant-matrix .table-wrap th:nth-child(3),.pollutant-matrix .table-wrap td:nth-child(3),.site-emission-table th:nth-child(3),.site-emission-table td:nth-child(3){width:100px!important}
+ .pollutant-matrix .table-wrap th:nth-child(4),.pollutant-matrix .table-wrap td:nth-child(4),.site-emission-table th:nth-child(4),.site-emission-table td:nth-child(4){width:58px!important}
+ .pollutant-matrix .table-wrap th:nth-child(5),.pollutant-matrix .table-wrap td:nth-child(5),.site-emission-table th:nth-child(5),.site-emission-table td:nth-child(5){width:145px!important}
+ .pollutant-matrix .table-wrap th:nth-child(6),.pollutant-matrix .table-wrap td:nth-child(6),.site-emission-table th:nth-child(6),.site-emission-table td:nth-child(6){width:68px!important}
+ .pollutant-matrix .table-wrap th:nth-child(7),.pollutant-matrix .table-wrap td:nth-child(7),.site-emission-table th:nth-child(7),.site-emission-table td:nth-child(7){width:122px!important}
+ .pollutant-matrix .table-wrap th:nth-child(8),.pollutant-matrix .table-wrap td:nth-child(8),.site-emission-table th:nth-child(8),.site-emission-table td:nth-child(8){width:82px!important}
+ .pollutant-matrix .table-wrap th:nth-child(9),.pollutant-matrix .table-wrap td:nth-child(9),.site-emission-table th:nth-child(9),.site-emission-table td:nth-child(9){width:82px!important}
+ .pollutant-matrix .table-wrap th:nth-child(10),.pollutant-matrix .table-wrap td:nth-child(10),.site-emission-table th:nth-child(10),.site-emission-table td:nth-child(10){width:75px!important}
+ .pollutant-matrix .table-wrap th:nth-child(11),.pollutant-matrix .table-wrap td:nth-child(11),.site-emission-table th:nth-child(11),.site-emission-table td:nth-child(11){width:72px!important}
+ .pollutant-matrix .table-wrap th:nth-child(12),.pollutant-matrix .table-wrap td:nth-child(12),.site-emission-table th:nth-child(12),.site-emission-table td:nth-child(12){width:96px!important}
+ .pollutant-matrix .table-wrap th:nth-child(13),.pollutant-matrix .table-wrap td:nth-child(13),.site-emission-table th:nth-child(13),.site-emission-table td:nth-child(13){width:72px!important}
+ .pollutant-matrix .table-wrap th:nth-child(14),.pollutant-matrix .table-wrap td:nth-child(14),.site-emission-table th:nth-child(14),.site-emission-table td:nth-child(14){width:115px!important}
+ .pollutant-matrix .table-wrap th:nth-child(15),.pollutant-matrix .table-wrap td:nth-child(15),.site-emission-table th:nth-child(15),.site-emission-table td:nth-child(15){width:120px!important}
+}
+@media screen and (min-width:1600px){
+ .table-wrap table{min-width:100%}
+ .pollutant-matrix .table-wrap table,.site-emission-table{min-width:100%!important}
+}
+</style></body>
 </html>
