@@ -378,5 +378,52 @@ document.addEventListener('change',e=>{if(e.target.matches('.result-select')&&!e
   const msg=box.querySelector('.save-state');if(msg){const now=new Date();msg.textContent=activeCommonSite+' 저장 완료 · '+now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});clearTimeout(window.__commonSaveMsgTimer);window.__commonSaveMsgTimer=setTimeout(()=>{msg.textContent=''},3500)}
  });
 })();
+</script>
+<style>
+#sheet-11 .improvement-site-filter{display:flex;align-items:center;gap:12px;background:#fff;border-left:6px solid #7030a0;border-radius:9px;padding:13px 18px;margin-bottom:12px;box-shadow:0 2px 8px #0000000d}
+#sheet-11 .improvement-site-filter label{font-weight:800;color:#522276;white-space:nowrap}
+#sheet-11 .improvement-site-filter select{min-width:220px;padding:8px 10px;border:1px solid #bbb7c2;border-radius:6px;background:#fff}
+#sheet-11 .improvement-site-filter .site-filter-note{font-size:12px;color:#6e6875}
+@media(max-width:900px){#sheet-11 .improvement-site-filter{flex-wrap:wrap}}
+@media print{#sheet-11 .improvement-site-filter{display:none!important}}
+</style>
+<script>
+/* 개선 필요사항: 전체 목록을 유지하면서 사업장별 결과와 사진을 선택 조회 */
+(function(){
+ const sheet=document.getElementById('sheet-11');
+ if(!sheet||sheet.querySelector('.improvement-site-filter'))return;
+ const summary=sheet.querySelector('.findings-summary');
+ const box=document.createElement('div');box.className='improvement-site-filter';
+ box.innerHTML='<label for="improvement-site-select">사업장별 보기</label><select id="improvement-site-select"><option value="">전체 사업장</option>'+commonSites.map(s=>'<option value="'+s+'">'+s+'</option>').join('')+'</select><span class="site-filter-note">전체 개선 필요사항을 유지하며 선택한 사업장만 따로 확인할 수 있습니다.</span>';
+ if(summary)summary.insertAdjacentElement('afterend',box);else sheet.insertBefore(box,sheet.firstChild);
+ const select=box.querySelector('select');
+ function selectedSite(){return select.value.trim()}
+ function applyFindingFilter(){
+  if(typeof refresh==='function')refresh(sheet);
+  const site=selectedSite();let shown=0;
+  sheet.querySelectorAll('tbody tr:not(.note-row)').forEach(row=>{
+   if(row.classList.contains('finding-empty')){row.classList.toggle('hidden',!!site);return}
+   const label=row.querySelector('.finding-site')?.textContent||row.cells[0]?.textContent||'';
+   const siteOK=!site||label.startsWith('['+site+']');
+   if(!siteOK)row.classList.add('hidden');
+   if(siteOK&&!row.classList.contains('hidden'))shown++;
+  });
+  const count=sheet.querySelector('.count');if(count)count.textContent=shown+'개 개선 필요사항';
+ }
+ function applyPhotoFilter(){
+  const site=selectedSite();let shown=0;
+  sheet.querySelectorAll('.improvement-photo-card').forEach(card=>{const tag=card.querySelector('.improvement-photo-tag')?.textContent.trim()||'';const ok=!site||tag===site;card.style.display=ok?'':'none';if(ok)shown++});
+  const grid=sheet.querySelector('.improvement-photo-grid');if(!grid)return;
+  let empty=grid.querySelector('.improvement-photo-filter-empty');
+  if(site&&shown===0){if(!empty){empty=document.createElement('div');empty.className='improvement-photo-empty improvement-photo-filter-empty';grid.appendChild(empty)}empty.textContent=site+'에 등록된 현장사진이 없습니다.'}else empty?.remove();
+ }
+ function applyAll(){applyFindingFilter();applyPhotoFilter()}
+ select.addEventListener('change',applyAll);
+ sheet.querySelectorAll('.search,.risk-filter,.result-filter').forEach(el=>el.addEventListener('input',()=>setTimeout(applyFindingFilter,0)));
+ const body=sheet.querySelector('tbody');if(body)new MutationObserver(()=>setTimeout(applyFindingFilter,0)).observe(body,{childList:true});
+ const photoGrid=sheet.querySelector('.improvement-photo-grid');if(photoGrid)new MutationObserver(()=>setTimeout(applyPhotoFilter,0)).observe(photoGrid,{childList:true});
+ document.querySelector('.tab[data-sheet="sheet-11"]')?.addEventListener('click',()=>setTimeout(applyAll,20));
+ applyAll();
+})();
 </script></body>
 </html>
