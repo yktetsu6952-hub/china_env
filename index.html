@@ -591,5 +591,43 @@ document.addEventListener('change',e=>{if(e.target.matches('.result-select')&&!e
  document.addEventListener('change',e=>{if(!e.target.matches('.emission-status'))return;const row=e.target.closest('.pollutant-row'),sheet=e.target.closest('.sheet');apply(row,e.target.value);save(sheet)});
  document.addEventListener('input',e=>{const sheet=e.target.closest?.('.sheet');if(ids.includes(sheet?.id)&&(e.target.matches('.actual-value,.permit-limit,.other-note')||e.target.closest('.actual-value,.permit-limit,.other-note')))save(sheet)});
 })();
+</script>
+<script>
+/* 2026-08-14 공식 원문 재검증 반영: GB30484 및 DB32/3747 항목 보완 */
+(function(){
+ function makeRow(data){
+  const row=document.createElement('tr');row.className='pollutant-row';row.dataset.media=data.media;row.dataset.max=String(data.limit);
+  const values=[data.media,data.source,data.pollutant,data.unit,data.basis,String(data.limit),data.condition,'',String(data.limit),'','미확인','자동계산','미확인',data.confirm||'허가·EIA·공정 및 배출구 확인',''];
+  const status=document.createElement('td');status.className='emission-check-cell';status.innerHTML='<select class="emission-status"><option>미확인</option><option>배출</option><option>미해당</option></select><input type="checkbox" class="emission-applicable">';row.appendChild(status);
+  values.forEach((value,index)=>{const td=document.createElement('td');td.textContent=value;if(index===7){td.className='permit-limit';td.contentEditable='true'}if(index===8)td.className='final-limit';if(index===9){td.className='actual-value';td.contentEditable='true'}if(index===10)td.className='auto-result judgement-excluded';if(index===11)td.className='internal-limit';if(index===12)td.className='internal-result judgement-excluded';if(index===14){td.className='other-note';td.contentEditable='true'}row.appendChild(td)});
+  row.querySelectorAll('.permit-limit,.actual-value').forEach(cell=>cell.addEventListener('input',()=>{if(typeof assessPollutantRow==='function')assessPollutantRow(row)}));return row;
+ }
+ function body(sheet){return document.querySelector('#'+sheet+' .site-emission-table tbody')}
+ function has(sheet,pollutant,basis){return [...document.querySelectorAll('#'+sheet+' .pollutant-row')].some(row=>row.cells[3]?.textContent.trim()===pollutant&&(!basis||row.cells[5]?.textContent.includes(basis)))}
+ function add(sheet,data){const target=body(sheet);if(target&&!has(sheet,data.pollutant,data.basisKey))target.appendChild(makeRow(data))}
+ function modeLimit(item,direct){return direct?item.direct:item.indirect}
+ const water=[
+  {pollutant:'총유기탄소(TOC)',direct:20,indirect:90},{pollutant:'석유류',direct:3,indirect:5},{pollutant:'LAS',direct:1,indirect:1},
+  {pollutant:'총카드뮴',direct:0.05,indirect:0.05,special:'0.01'},{pollutant:'총크롬',direct:0.5,indirect:0.5,special:'0.5'},{pollutant:'6가크롬',direct:0.1,indirect:0.1,special:'0.1'},
+  {pollutant:'총비소',direct:0.2,indirect:0.2,special:'0.1'},{pollutant:'총납',direct:0.2,indirect:0.2,special:'0.1'},{pollutant:'황화물',direct:1,indirect:1,special:'1'}
+ ];
+ function addSessWater(){
+  const select=document.querySelector('#sheet-3 .discharge-mode-select'),direct=select?.value.includes('직접'),workshop=['총카드뮴','총크롬','6가크롬','총비소','총납'];
+  water.forEach(item=>{const limit=modeLimit(item,direct),condition=(direct?'직접배출 일반한도':'간접배출 일반한도')+(item.special?' · 특별한도 '+item.special+' 적용 여부 미확인':'');const existing=[...document.querySelectorAll('#sheet-3 .pollutant-row')].find(row=>row.cells[3]?.textContent.trim()===item.pollutant);
+   if(existing){existing.dataset.max=String(limit);existing.cells[5].textContent='DB32/3747-2020 표1';existing.cells[6].textContent=String(limit);existing.cells[7].textContent=condition;existing.cells[9].textContent=String(limit);if(typeof assessPollutantRow==='function')assessPollutantRow(existing);return}
+   add('sheet-3',{media:'수질',source:workshop.includes(item.pollutant)?'차간 또는 생산설비 폐수배출구':'기업 폐수 총배출구',pollutant:item.pollutant,unit:'mg/L',basis:'DB32/3747-2020 표1',basisKey:'DB32/3747',limit,condition,confirm:'배출허가·EIA·특별한도 지정 여부 확인'});
+  });
+ }
+ const air=[['먼지(입자상물질)',20],['황산미스트',5],['염화수소(HCl)',10],['불화물(F)',1.5],['질소산화물(NOx)',50],['시안화수소(HCN)',0.5],['염소가스(Cl₂)',5],['암모니아(NH₃)',10],['주석 및 그 화합물',1],['아르신(AsH₃)',1],['포스핀(PH₃)',1],['이소프로판올(IPA)',40],['삼염화에틸렌(TCE)',1],['벤젠',1],['벤젠계물질(6종 합산)',25],['포름알데히드',5],['비메탄계총탄화수소(NMHC)',50],['TVOC',100]];
+ const boundary=[['염화수소(HCl)',0.2],['시안화수소(HCN)',0.024],['염소가스(Cl₂)',0.4],['황산미스트',1.2],['암모니아(NH₃)',1],['포름알데히드',0.2],['벤젠',0.4],['비메탄계총탄화수소(NMHC)',2]];
+ function rebuildSessAir(){const target=body('sheet-3');if(!target)return;target.querySelectorAll('.pollutant-row[data-media="대기"]').forEach(row=>row.remove());air.forEach(([pollutant,limit])=>add('sheet-3',{media:'대기',source:'차간 또는 생산설비 배출구(유조직)',pollutant,unit:'mg/m³',basis:'DB32/3747-2020 표3',basisKey:'DB32/3747-2020 표3',limit,condition:'해당 배출공정 존재 시',confirm:'허가·EIA·공정 및 측정방법 확인'}));boundary.forEach(([pollutant,limit])=>add('sheet-3',{media:'대기(부지경계)',source:'기업경계 무조직배출',pollutant,unit:'mg/m³',basis:'DB32/3747-2020 표4',basisKey:'DB32/3747-2020 표4',limit,condition:'1시간 평균',confirm:'사업장 경계 측정지점·허가조건 확인'}))}
+ function fixSdi(sheet){
+  document.querySelectorAll('#'+sheet+' .pollutant-row').forEach(row=>{if(row.cells[3]?.textContent.trim()==='불소화물(F)'){delete row.dataset.max;row.cells[5].textContent='GB30484-2013 표2';row.cells[6].textContent='해당없음';row.cells[7].textContent='태양전지 전용 · 리튬이온/리튬전지 미적용';row.cells[9].textContent='해당없음';const status=row.querySelector('.emission-status');if(status){status.value='미해당';status.dispatchEvent(new Event('change',{bubbles:true}))}}});
+  add(sheet,{media:'대기',source:'차간 또는 생산설비 배출구',pollutant:'먼지(입자상물질)',unit:'mg/m³',basis:'GB30484-2013 표5 리튬이온/리튬전지',basisKey:'GB30484-2013 표5',limit:30,condition:'전 전지유형 공통(유조직 배출)',confirm:'실제 생산공정·배출구·허가조건 확인'});
+ }
+ addSessWater();rebuildSessAir();fixSdi('sheet-6');fixSdi('sheet-7');
+ document.addEventListener('change',e=>{if(e.target.matches('#sheet-3 .discharge-mode-select'))setTimeout(addSessWater,10);if(e.target.matches('#sheet-6 .discharge-mode-select,#sheet-7 .discharge-mode-select'))setTimeout(()=>fixSdi(e.target.closest('.sheet').id),10)});
+ if(typeof rebuildFindings==='function')rebuildFindings();
+})();
 </script></body>
 </html>
