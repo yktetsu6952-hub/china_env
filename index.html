@@ -913,6 +913,36 @@ table.freeze-to-detail .frozen-detail-edge{border-right-color:#1428A0!important;
  }
 })();
 </script>
+<style>
+.full-backup-panel{margin-top:22px;padding:18px 20px;border:1px solid rgba(20,40,160,.24);border-left:6px solid rgb(20,40,160);border-radius:9px;background:#f7f9ff}
+.full-backup-panel h3{margin:0 0 9px!important;padding:0!important;border:0!important;background:none!important;color:rgb(20,40,160)}
+.full-backup-panel p{margin:6px 0;line-height:1.55}.full-backup-actions{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:13px 0 8px}
+.full-backup-btn{border:1px solid rgb(20,40,160);border-radius:6px;padding:9px 15px;background:#fff;color:rgb(20,40,160);font:inherit;font-weight:700;cursor:pointer}
+.full-backup-btn.primary{background:rgb(20,40,160);color:#fff}.full-backup-btn:disabled{opacity:.55;cursor:wait}
+.full-backup-status{font-weight:700;color:#334}.full-backup-note{font-size:12px;color:#655}
+</style>
+<script>
+/* 전체 점검자료 백업/복원: china-* localStorage와 현장사진 IndexedDB를 한 JSON 파일로 관리 */
+(function(){
+ const FORMAT='china-ehs-checklist-backup',VERSION=1,DB_NAME='china-env-checklist-media',STORE_NAME='photos',KEY_PREFIX='china-';
+ const guide=document.querySelector('#sheet-1 .guide-card');if(!guide||guide.querySelector('.full-backup-panel'))return;
+ const panel=document.createElement('div');panel.className='full-backup-panel';
+ panel.innerHTML='<h3>전체 점검자료 백업 · 복원</h3><p>이 브라우저에 저장된 모든 사업장의 공통점검 결과, 배출기준 입력값, 추가 오염물질, 기타사항 및 현장사진을 하나의 파일로 내보내 다른 컴퓨터에서 복원할 수 있습니다.</p><div class="full-backup-actions"><button type="button" class="full-backup-btn primary backup-export">전체 자료 내보내기</button><button type="button" class="full-backup-btn backup-import">전체 자료 가져오기</button><input type="file" class="backup-file" accept=".json,application/json" hidden><span class="full-backup-status" aria-live="polite">● 준비됨</span></div><p class="full-backup-note">※ 가져오기는 현재 브라우저의 체크리스트 자료를 백업 파일의 내용으로 교체합니다. 먼저 현재 자료를 내보내 보관하세요. 백업 파일에는 사업장 답변·담당자·현장사진 등이 포함될 수 있으므로 사내 보안기준에 따라 관리하십시오.</p>';
+ guide.appendChild(panel);
+ const exportBtn=panel.querySelector('.backup-export'),importBtn=panel.querySelector('.backup-import'),fileInput=panel.querySelector('.backup-file'),status=panel.querySelector('.full-backup-status');
+ const setBusy=(busy,message)=>{exportBtn.disabled=busy;importBtn.disabled=busy;status.textContent=message};
+ function openDb(){return new Promise((resolve,reject)=>{if(!window.indexedDB){resolve(null);return}const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(STORE_NAME))req.result.createObjectStore(STORE_NAME)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+ async function readPhotos(){const db=await openDb();if(!db)return[];return new Promise((resolve,reject)=>{const out=[],tx=db.transaction(STORE_NAME,'readonly'),req=tx.objectStore(STORE_NAME).openCursor();req.onsuccess=()=>{const c=req.result;if(c){out.push({key:c.key,value:c.value});c.continue()}else resolve(out)};req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close();tx.onerror=()=>{db.close();reject(tx.error)}})}
+ async function writePhotos(records){const db=await openDb();if(!db){if(records.length)throw new Error('이 브라우저는 현장사진 저장소를 지원하지 않습니다.');return}await new Promise((resolve,reject)=>{const tx=db.transaction(STORE_NAME,'readwrite'),store=tx.objectStore(STORE_NAME);store.clear();records.forEach(rec=>store.put(rec.value,rec.key));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('현장사진 복원 중단'))});db.close()}
+ function readStorage(){const out={};for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(key&&key.startsWith(KEY_PREFIX))out[key]=localStorage.getItem(key)}return out}
+ function writeStorage(values){for(let i=localStorage.length-1;i>=0;i--){const key=localStorage.key(i);if(key&&key.startsWith(KEY_PREFIX))localStorage.removeItem(key)}Object.entries(values).forEach(([key,value])=>localStorage.setItem(key,value))}
+ async function snapshot(){try{if(typeof saveCommonSite==='function'&&typeof activeCommonSite!=='undefined')saveCommonSite(activeCommonSite)}catch(e){}return{format:FORMAT,version:VERSION,exportedAt:new Date().toISOString(),source:{title:document.title},localStorage:readStorage(),indexedDB:{[DB_NAME]:{[STORE_NAME]:await readPhotos()}}}}
+ function validate(data){if(!data||data.format!==FORMAT||data.version!==VERSION)throw new Error('이 체크리스트에서 만든 전체 백업 파일이 아닙니다.');if(!data.localStorage||typeof data.localStorage!=='object'||Array.isArray(data.localStorage))throw new Error('저장자료 형식이 올바르지 않습니다.');for(const [key,value] of Object.entries(data.localStorage)){if(!key.startsWith(KEY_PREFIX)||typeof value!=='string')throw new Error('허용되지 않은 저장항목이 포함되어 있습니다.')}const photos=data.indexedDB?.[DB_NAME]?.[STORE_NAME];if(!Array.isArray(photos))throw new Error('현장사진 백업 형식이 올바르지 않습니다.');photos.forEach(rec=>{if(!rec||!('key'in rec)||!('value'in rec))throw new Error('현장사진 항목이 손상되었습니다.')});return photos}
+ function stamp(){const d=new Date(),pad=n=>String(n).padStart(2,'0');return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds())}
+ exportBtn.addEventListener('click',async()=>{try{setBusy(true,'● 내보내는 중…');const data=await snapshot(),blob=new Blob([JSON.stringify(data)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='중국_환경_체크리스트_전체백업_'+stamp()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);setBusy(false,'● 저장됨 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false})+' · 사진 '+data.indexedDB[DB_NAME][STORE_NAME].length+'건')}catch(err){setBusy(false,'● 내보내기 실패');alert('전체 자료를 내보내지 못했습니다.\n'+err.message)}});
+ importBtn.addEventListener('click',()=>fileInput.click());
+ fileInput.addEventListener('change',async()=>{const file=fileInput.files&&fileInput.files[0];fileInput.value='';if(!file)return;try{setBusy(true,'● 파일 확인 중…');const data=JSON.parse(await file.text()),photos=validate(data),keyCount=Object.keys(data.localStorage).length;if(!confirm('백업 파일의 전체 자료를 가져오면 이 브라우저에 저장된 현재 점검자료가 교체됩니다.\n\n저장항목 '+keyCount+'개 / 현장사진 '+photos.length+'건\n\n계속하시겠습니까?')){setBusy(false,'● 가져오기 취소됨');return}const current=await snapshot();try{setBusy(true,'● 복원하는 중…');await writePhotos(photos);writeStorage(data.localStorage)}catch(err){try{await writePhotos(current.indexedDB[DB_NAME][STORE_NAME]);writeStorage(current.localStorage)}catch(rollbackError){}throw err}setBusy(false,'● 복원 완료');alert('전체 점검자료를 가져왔습니다. 화면을 새로 불러옵니다.');location.reload()}catch(err){setBusy(false,'● 가져오기 실패');alert('전체 자료를 가져오지 못했습니다. 기존 자료는 유지됩니다.\n'+err.message)}});
+})();
+</script>
 </body>
 </html>
-
