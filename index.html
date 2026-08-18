@@ -629,5 +629,11 @@ document.addEventListener('change',e=>{if(e.target.matches('.result-select')&&!e
  document.addEventListener('change',e=>{if(e.target.matches('#sheet-3 .discharge-mode-select'))setTimeout(addSessWater,10);if(e.target.matches('#sheet-6 .discharge-mode-select,#sheet-7 .discharge-mode-select'))setTimeout(()=>fixSdi(e.target.closest('.sheet').id),10)});
  if(typeof rebuildFindings==='function')rebuildFindings();
 })();
+</script>
+<script>
+/* 점검결과 선택 메뉴에서 '관찰' 제외 */
+(function(){
+ document.querySelectorAll('.result-select option').forEach(option=>{if(option.textContent.trim()==='관찰')option.remove()});
+})();
 </script></body>
 </html>
