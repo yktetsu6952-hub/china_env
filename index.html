@@ -895,6 +895,16 @@ table.freeze-to-detail .frozen-detail-edge{border-right-color:#1428A0!important;
  sheet.querySelector(':scope > .toolbar')?.remove();
  sheet.querySelector(':scope > .table-wrap')?.remove();
  const block=sheet.querySelector('.site-emission-block');if(block)block.classList.add('pinghu-emission-only');
+ const table=sheet.querySelector('.site-emission-table'),wrap=table?.closest('.table-wrap');
+ if(table&&wrap){
+  wrap.nextElementSibling?.classList.contains('pollutant-footnote')&&wrap.nextElementSibling.remove();
+  const text=table.textContent,notes=[];
+  if(text.includes('LAS'))notes.push('<strong>※ LAS</strong>: 음이온계면활성제(阴离子表面活性剂, Anionic Surfactants)를 의미하며, 일반적으로 직쇄 알킬벤젠설폰산염(Linear Alkylbenzene Sulfonate)을 지표물질로 측정합니다.');
+  if(text.includes('NMHC')||text.includes('비메탄계총탄화수소'))notes.push('<strong>※ NMHC</strong>: 비메탄계총탄화수소(非甲烷总烃, Non-Methane Hydrocarbons)입니다. 표준 측정조건에서 총탄화수소(THC) 농도에서 메탄 농도를 제외한 값으로, VOCs 배출수준을 관리하는 종합지표입니다. TVOC·TRVOC와 동일한 개념이 아니므로 적용 표준의 측정방법을 확인해야 합니다.');
+  if(text.includes('TRVOC'))notes.push('<strong>※ TRVOC</strong>: 총반응활성 휘발성유기화합물(总反应活性挥发性有机物, Total Reactive Volatile Organic Compounds)입니다. 적용 표준이 지정한 반응성 VOC 개별물질 농도의 합이며 NMHC·TVOC와 구분합니다.');
+  if(text.includes('차간'))notes.push('<strong>※ 차간(车间)</strong>: 공장 내부의 개별 작업장·생산공정을 뜻합니다. 차간 또는 생산시설 폐수배출구는 여러 폐수가 총배출구에서 혼합되기 전에 해당 공정 폐수를 확인하는 측정지점입니다.');
+  if(notes.length){const note=document.createElement('div');note.className='pollutant-footnote';note.innerHTML=notes.map(n=>'<p>'+n+'</p>').join('');wrap.insertAdjacentElement('afterend',note)}
+ }
 })();
 </script>
 </body>
